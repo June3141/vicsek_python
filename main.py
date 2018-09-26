@@ -29,6 +29,9 @@ boundary_radius = 12.0
 boundary_delta = 12.0
 # --------------------------------------------------------------
 
+center_r = [  boundary_delta / 2, 0]
+center_l = [- boundary_delta / 2, 0]
+
 today = datetime.date.today()
 today = today.strftime("%Y%m%d")
 data_path = "./data/{}".format(today)
@@ -110,6 +113,27 @@ def particles_init():
 
     return particles
 
+def correct_position():
+
+    return x, y
+
+def check_boudary(particles_old, particles_new):
+    diff_r_list = [diff_right_center(particles_new[i]) for i in range(particles_new)]
+    diff_l_list = [diff_left_center(particles_new[i]) for i in range(particles_new)]
+
+    for i in range(particles_number):
+        if diff_r_list[i] >= boundary_radius and diff_l_list[i] >= boundary_radius:
+            x_diff, y_diff = correct_position(particles_new[i])
+
+        elif :
+
+        
+        particles_new[i, 0] = particles_old[i, 0] + x_diff
+        particles_new[i, 1] = particles_old[i, 1] + y_diff
+
+    
+    return particles_new
+
 
 if __name__ == '__main__':
     
@@ -119,6 +143,10 @@ if __name__ == '__main__':
     for t in tqdm(range(timestep)):
         new_particles = position_update(old_particles, new_particles)
         new_particles = theta_update(old_particles, new_particles)
+        new_particles = check_boudary(old_particles, new_particles)
 
         save_path = data_path + "/{0:3d}/{1:02d}/{2:05d}.dat".format(boundary_delta, noise_power * 100, t)
         np.savetxt(save_path, old_particles, delimiter=", ")
+
+        # t -> t+1 の更新
+        old_particles = new_particles
