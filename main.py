@@ -35,7 +35,16 @@ center_l = [- boundary_delta / 2, 0]
 today = datetime.date.today()
 today = today.strftime("%Y%m%d")
 data_path = "./data/{}".format(today)
+delta_path = data_path + "/{0:3d}".format(boundary_delta)
+noise_path = data_path + "/{0:3d}/{1:02d}".format(boundary_delta, noise_power * 100)
 
+# ディレクトリの作成
+if not os.path.isdir(data_path):
+    os.makedirs(data_path)
+if not os.path.isdir(delta_path):
+    os.makedirs(delta_path)
+if not os.path.isdir(noise_path):
+    os.makedirs(noise_path)
 
 def cal_distance(r1, r2):
     diff = np.sqrt((r1[0] - r2[0]) ** 2 + (r1[1] - r2[1]) ** 2)
@@ -113,25 +122,69 @@ def particles_init():
 
     return particles
 
-def correct_position():
 
-    return x, y
 
 def check_boudary(particles_old, particles_new):
     diff_r_list = [diff_right_center(particles_new[i]) for i in range(particles_new)]
     diff_l_list = [diff_left_center(particles_new[i]) for i in range(particles_new)]
 
     for i in range(particles_number):
-        if diff_r_list[i] >= boundary_radius and diff_l_list[i] >= boundary_radius:
-            x_diff, y_diff = correct_position(particles_new[i])
+        # 右側領域で円境界よりはみ出しているとき
+        if diff_r_list[i] > boundary_radius and particles_old[0] > 0:
+            x_diff, y_diff = correct_position(particles_old, particles_new, center_r)
 
-        elif :
+        # 左側領域で円境界よりはみ出しているとき
+        elif diff_l_list[i] > boundary_radius and particles_old[0] < 0:
+            x_diff, y_diff = correct_position(particles_old, particles_new, center_l)
+        
+        # 中心線で円境界よりはみ出しているとき
+        elif diff_r_list[i] > boundary_radius and diff_r_list[i] > boundary_radius:
+            # 次のステップで，どちらの領域に存在するかで判定を行う．
+            if particles_new[x] > 0:
+                x_diff, y_diff = correct_position(particles_old, particles_new, center_r)
+
+            elif particles_new[x] < 0:
+                x_diff, y_diff = correct_position(particles_old, particles_new, center_l)
+
+            # 完全に垂直にエッジに突入したとき．
+            else:
+                judge = np.random.rand()
+                if judge <= 0.50:
+                    x_diff, y_diff = correct_position(particles_old, particles_new, center_r)
+
+                else:
+                    x_diff, y_diff = correct_position(particles_old, particles_new, center_l)
 
         
         particles_new[i, 0] = particles_old[i, 0] + x_diff
         particles_new[i, 1] = particles_old[i, 1] + y_diff
 
     
+
+    def correct_position(particles_old, particles_new, cr):
+        theta_wall = np.arctan2(particles_new[1], particles_new[0])
+        theta_particle = particles_old[2]
+
+        # 壁と粒子の運動方向をチェック．反対方向を向いているときは壁の角度を修正．
+        if np.cos(theta_wall - theta_particle) < 0:
+            theta_wall = theta_wall + np.pi
+        
+        # 壁に垂直に突入してしまったとき．
+        elif np.cos(theta_wall - theta_particle) == 0:
+            judge = np.random.rand()
+            theta_wall = theta_wall + np.pi if judge <= 0.50:
+
+        # 角度を定義域内に修正．
+        if theta_wall > np.pi:
+            theta_wall -= 2 * np.pi
+        elif theta_wall < - np.pi:
+            theta_wall += 2 * np.pi
+
+        x = particles_velocity * np.cos(theta_wall)
+        y = particles_velocity * np.sin(theta_wall)
+
+        return x, y
+
     return particles_new
 
 
