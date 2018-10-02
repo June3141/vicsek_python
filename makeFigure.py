@@ -4,6 +4,7 @@ import numpy as np
 
 import glob
 import datetime
+import os
 from tqdm import tqdm
 
 
@@ -36,15 +37,21 @@ if __name__ == "__main__":
             fig_noise = fig_path + "/{0:03d}/{1:03d}".format(int(delta_init + dx * delta_width), int((noise_init + q * noise_width) * 100))
 
             # ディレクトリの作成
-            if not os.path.isdir(data_path):
+            if not os.path.isdir(fig_path):
                 os.makedirs(fig_path)
-            if not os.path.isdir(delta_path):
+            
+            if not os.path.isdir(fig_delta):
                 os.makedirs(fig_delta)
-            if not os.path.isdir(noise_path):
+            
+            if not os.path.isdir(fig_noise):
                 os.makedirs(fig_noise)
+            else:
+                png_list = glob.glob(fig_noise + "/*.png")
+                for i in range(len(png_list)):
+                    os.remove(png_list[i])
 
         for time in tqdm(range(len(data_list))):
-            file_path = data_list[i]
+            file_path = data_list[time]
             particles = np.loadtxt(file_path, delimiter = ",")
             
             x = particles[:, 0]
@@ -53,11 +60,8 @@ if __name__ == "__main__":
             
             u = np.cos(theta)
             v = np.sin(theta)
-                
             
             fig = plt.figure(figsize = (8, 8))
-            plt.quiver(x, y, u, v, angles = "xy", scale_units = "xy", scale = 0.4)
-
             plt.xlim([-L, L])
             plt.ylim([-L, L])        
             plt.grid()
@@ -66,6 +70,8 @@ if __name__ == "__main__":
             plt.title("time = {0:05d}".format(time), loc = 'center')
             plt.tight_layout()
             
+            plt.quiver(x, y, u, v, angles = "xy", scale_units = "xy", scale = 0.4)
             plt.draw()
+
             plt.savefig(fig_noise + "/{0:05d}.png".format(time))
             plt.close()

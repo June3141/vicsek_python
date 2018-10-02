@@ -10,6 +10,7 @@ from numba import jit
 # 汎用モジュール
 import os
 import time
+import glob
 import datetime
 from tqdm import tqdm
 import subprocess
@@ -22,7 +23,7 @@ particles_velocity = 1.0    # 粒子の速さ
 search_radius = 1.0         # 粒子の探査半径 
 
 noise_power = 0.20
-timestep = 1000             # シミュレーションの時間
+timestep = 100             # シミュレーションの時間
 
 
 boundary_radius = 12.0
@@ -41,10 +42,17 @@ noise_path = data_path + "/{0:03d}/{1:03d}".format(int(boundary_delta), int(nois
 # ディレクトリの作成
 if not os.path.isdir(data_path):
     os.makedirs(data_path)
+
 if not os.path.isdir(delta_path):
     os.makedirs(delta_path)
+
 if not os.path.isdir(noise_path):
     os.makedirs(noise_path)
+else:
+    data_list = glob.glob(noise_path + "/*.dat")
+    for i in range(len(data_list)):
+        os.remove(data_list[i])
+
 
 def cal_distance(r1, r2):
     diff = np.sqrt((r1[0] - r2[0]) ** 2 + (r1[1] - r2[1]) ** 2)
@@ -86,6 +94,12 @@ def theta_update(particles_old, particles_new):
                 count += 1
 
         particles_new[i, 2] = theta_new / count + noise_power * np.random.randn()
+        
+        if particles_new[i, 2] > np.pi:
+            particles_new[i, 2] -= 2 * np.pi
+
+        elif particles_new[i, 2] < - np.pi:
+            particles_new[i, 2] += 2 * np.pi
 
     return particles_new
 
@@ -141,7 +155,7 @@ def check_boudary(particles_old, particles_new):
             check = 1   
         
         # 中心線で円境界よりはみ出しているとき
-        elif diff_r_list[i] > boundary_radius and diff_r_list[i] > boundary_radius:
+        elif diff_r_list[i] > boundary_radius and diff_l_list[i] > boundary_radius:
             check = 1
             # 次のステップで，どちらの領域に存在するかで判定を行う．
             if particles_new[i, 0] > 0:
@@ -168,7 +182,7 @@ def check_boudary(particles_old, particles_new):
     return particles_new
 
 def correct_position(particles_old, particles_new, cr):
-    theta_wall = np.arctan2(particles_new[1], particles_new[0])
+    theta_wall = np.arctan2(particles_old[1], particles_old[0] - cr[0]) + np.pi / 2
     theta_particle = particles_old[2]
 
     # 壁と粒子の運動方向をチェック．反対方向を向いているときは壁の角度を修正．
